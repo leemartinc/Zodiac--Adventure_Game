@@ -20,9 +20,8 @@ def scene(file):
 	exec("global room\n"
 		"room = {"+Gmap[:-1]+"}")
 
-
 scene("test_map.txt")
-print ("the room")
+
 #print (room)
 
 for i in range(1,len(room)+1):

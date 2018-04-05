@@ -2,6 +2,8 @@ import os
 import random
 import platform
 import shutil
+import time
+import random
 try:
     from msvcrt import getch #For windows
 except ImportError: #For linux and maybe mac...
@@ -39,7 +41,7 @@ def player_stats():
 	global player_health
 	global player_def
 	global player_atk
-	global player_exp
+	global player_power
 	global columns
 
 	print()
@@ -60,7 +62,10 @@ def player_stats():
 
 	#print(centerfy(stats), columns)
 
-	print("Health: %s \tArmour: %s \tDamage: %s \t EXP: %s".center(columns) % (player_health, player_def, player_atk, player_exp))
+	print("Health: %s \tArmour: %s \t power: %s".center(columns) % (player_health, player_def, player_power))
+	print()
+	print("SKILLZ".center(columns))
+	print(" sk1 max Damage: %s \t sk2 max Damage: %s \t sk3 Effect: %s".center(columns) % (player_skill1, player_skill2, player_skill3))
 
 '''
 	print (":Health:".center(columns) + str(player_health).center(columns))
@@ -69,6 +74,16 @@ def player_stats():
 	print()
 	print (":Damage:".center(columns) + str(player_atk).center(columns))
 	'''
+
+def monsterStats():
+	global mon_char
+	global mon_name
+	global mon_health
+	global mon_def
+	global mon_attack
+	#set monster global variables
+	#to be called by gameCombat
+	print("%s the Monster\t Health: %s".center(columns) % (mon_name, mon_health))
 
 def player_pos():
     for i in range(1,len(room)+1):
@@ -212,7 +227,7 @@ character = ""
 player_name = ""
 player_class = 0
 player_health = 0
-player_exp = 0
+player_power = 0
 player_def = 0
 player_atk = 0
 player_pots = 0
@@ -239,7 +254,17 @@ specialStuff = {'tutCombatprompt': [10, 30],
 				'tutMonster': [2, 41],
 				'tutHealth': [2, 4],
 				'tutEnd': [2, 53],
-				'tutPortal': [11, 65]}
+				'tutPortal': [11, 65],
+				'mon1' : [38, 58],
+				'mon2' : [29, 32],
+				'mon3' : [25, 72],
+				'mon4' : [11, 57],
+				'mon5' : [33, 77],
+				'mon6' : [19, 101],
+				'mon7' : [30, 15],
+				'mon8' : [13, 15],
+				'mon9' : [4, 57],
+				'monw' : [5, 114]}
 
 #gets map from a text file in the game directory
 #This takes each line and put it in the dictionary, set, list format....^^^^^^^^
@@ -327,7 +352,7 @@ def fightClub2():
 	global player_skill1
 	global player_skill2
 	global player_skill3
-	global player_exp
+	global player_power
 
 	global mon_char
 	global mon_name
@@ -352,49 +377,88 @@ def fightClub2():
 	attackDamage = 0
 
 	while player_health > 0 and mon_health > 0:
-		pressedkey = getch()
+		
 		#player attack
 		if turn == 0:
-			error = 0
 			updater()
+			error = 0
+			
 			print("choose a skill".center(columns))
+			pressedkey = getch()
 			if pressedkey is '1':
-				print("keyu 1")
-				attackDamage = player_skill1 - m_def**(1/2)
+				print("You selected skill 1")
+				time.sleep(.5)
+				attackDamage = random.randint(int(player_skill1-(player_skill1*.8)), int(player_skill1)) - (m_def**(.5))/2
+				if attackDamage < 0:
+					attackDamage = 0
+					print("you did 0 damage to this monster.")
 				mon_health -= attackDamage
-			elif pressedkey is '2':
-				print("keyu 2")
-				attackDamage = player_skill2 - m_def**(1/2)
-				mon_health -= attackDamage
-			elif pressedkey is '3':
-				print("keyu 3")
-				#if condition for class
+				print("You just attacked with %s damage" % (attackDamage))
+				time.sleep(2)
 				turn = 1
+			elif pressedkey is '2':
+				if player_power > 1:
+					print("You selected skill 2")
+					time.sleep(.5)
+					attackDamage = random.randint(int(player_skill2-(player_skill2*.8)), int(player_skill2)) - (m_def**(.5))/2
+					if attackDamage < 0:
+						attackDamage = 0
+						print("you did 0 damage to this monster.")
+					mon_health -= attackDamage
+					print("You just attacked with %s damage but it took some power" % (attackDamage))
+					time.sleep(2)
+
+					player_power -= player_power*.3
+					toSub = player_skill1/(player_power*.3)
+					player_skill1 -= toSub
+
+					turn = 1
+				else:
+					print("you do not have enough power for that skill")
+					time.sleep(1)
+			elif pressedkey is '3':
+				#if condition for class
+				if player_power > 1:
+					#do stuff
+					print("You have selected skill 3")
+				else:
+					print("you do not have enough power for that skill")
+					time.sleep(1)
 			elif pressedkey is 'p' or pressedkey is 'P':
 				exit()
 			elif pressedkey is not '1' or pressedkey is not '2' or pressedkey is not '3':
 				error = 1
 			if error == 1:
 				print("invalid response")
-			else:
-				turn = 1
-		if turn == 1:
-			print("monster just attacked")
+		if turn == 1 and mon_health > 0:
 			attackDamage = m_atk - p_def**(1/2)
 			if attackDamage < 0:
 				attackDamage = 0
 			player_health -= attackDamage
+			print("monster just attacked with %s damage" % (attackDamage))
+			time.sleep(3)
 			turn = 0
+
+	combatAllowed = 1
 
 	updater()
 	if player_health > 0:
 		print("player wins")
-		player_exp += m_def * 2
-		player_health = p_health + m_health
+		player_power += mon_def*2
+		p_health = player_health * (player_power*.6)
+		player_health = int(p_health)
+		mon_health = m_health
+		time.sleep(3)
+		player_skill1 = int(player_skill1 * (player_power*.8))
+		prob = random.randint(5,9)
+		player_skill2 = int(player_skill1 + player_skill1*(prob/10))
+		print("Congratulations! Your stats have been improved")
 	else:
 		print("You died! GAME OVER!")
+		time.sleep(5)
 		exit()
 	#scene("map.tutorial")
+
 def gameCombat(monster):
 	global specialStuff
 	global mon_name
@@ -416,8 +480,6 @@ def gameCombat(monster):
 	#monsterStats(update_stat)
 	scene("map_combat.txt")
 	updater()
-	print("%s the Monster".center(columns) % (mon_name))
-	print("Health: %s".center(columns) % (mon_health))
 
 	'''
 	player = fightClub(player_name, player_health, player_atk, player_def)
@@ -427,16 +489,6 @@ def gameCombat(monster):
 	fightClub2()
 
 
-
-def monsterStats():
-	global mon_char
-	global mon_name
-	global mon_health
-	global mon_def
-	global mon_attack
-	#set monster global variables
-	#to be called by gameCombat
-	print("%s the Monster\t Health: %s".center(columns) % (mon_name, mon_health))
 	
 	
 
@@ -451,25 +503,40 @@ def specialPos():
 	global mon_health
 	global mon_def
 	global mon_attack
+	global movementAllowed
 	#######################################################################
 	#Tutorial
 	#Monster ahead
 	if pos == specialStuff['tutCombatprompt']:
-		statement="Monster ahead!\n\nYou can approch monster to\nstart the fight!\n\n Each fight will give you EXP that\nwill help you level up!"
+		statement="Monster ahead!\n\nYou can approch monster to\nstart the fight!\n\n Each fight will give you power that\nwill help you level up!"
 	#monster fight
 	if pos == specialStuff['tutMonster']:
 		mon_char = "T"
 		mon_name = "Tutorial Monster"
 		mon_health = 10
-		mon_def = 0
+		mon_def = 2
 		mon_attack = 1
 		gameCombat(specialStuff['tutMonster'])
 	if pos == specialStuff['tutEnd']:
 		statement="Thats all to it! \n Good luck warrior! \n\nHead to the portal to enter the game world!"
 	if pos == specialStuff['tutPortal']:
 		scene("map_world.txt")
+		scene("map_world.txt")
 	#######################################################################
 	#Combat
+	if pos == specialStuff['mon1']:
+		mon_char = "1"
+		mon_name = "Lerroooyyyy"
+		mon_health = 67
+		mon_def = 4
+		mon_attack = 14
+		gameCombat(specialStuff['mon1'])
+		scene("map_world.txt")
+		movementAllowed = 0
+		gamemap()
+		updater()
+		action()
+
 	
 
 
@@ -486,11 +553,15 @@ def initPlayer(pname,pclass):
 	global player_skill1
 	global player_skill2
 	global player_skill3
+	global player_power
+
 
 	#ninja
 	if player_class==1:
 		player_def = 4
 		player_skill1 =  10
+		prob = random.randint(5,9)
+		player_skill2 = int(player_skill1 + player_skill1*(prob/10))
 		player_health = 70
 		'''
 		player_skill1 = 
@@ -502,7 +573,10 @@ def initPlayer(pname,pclass):
 	elif player_class==2:
 		player_def = 15
 		player_skill1 = 4
+		prob = random.randint(5,9)
+		player_skill2 = int(player_skill1 + player_skill1*(prob/10))
 		player_health = 100
+		player_skill3 = player_def*2
 		'''
 		player_skill1 = 
 		player_skill2 =
@@ -513,6 +587,8 @@ def initPlayer(pname,pclass):
 	elif player_class==3:
 		player_def = 7
 		player_skill1 = 7
+		prob = random.randint(5,9)
+		player_skill2 = int(player_skill1 + player_skill1*(prob/10))
 		player_health = 85
 		'''
 		player_skill1 = 
@@ -524,7 +600,10 @@ def initPlayer(pname,pclass):
 	elif player_class==4:
 		player_def = 4
 		player_skill1 = 6
+		prob = random.randint(5,9)
+		player_skill2 = int(player_skill1 + player_skill1*(prob/10))
 		player_health = 65
+		player_skill3 = player_health/2
 		'''
 		player_skill1 = 
 		player_skill2 = 
