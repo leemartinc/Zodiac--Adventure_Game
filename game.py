@@ -4,6 +4,8 @@ import platform
 import shutil
 import time
 import random
+import webbrowser
+
 try:
     from msvcrt import getch #For windows
 except ImportError: #For linux and maybe mac...
@@ -264,7 +266,8 @@ specialStuff = {'tutCombatprompt': [10, 30],
 				'mon7' : [30, 15],
 				'mon8' : [13, 15],
 				'mon9' : [4, 57],
-				'monw' : [5, 114]}
+				'monw' : [5, 114],
+				'prize' : [37, 136]}
 
 #gets map from a text file in the game directory
 #This takes each line and put it in the dictionary, set, list format....^^^^^^^^
@@ -387,30 +390,32 @@ def fightClub2():
 			pressedkey = getch()
 			if pressedkey is '1':
 				print("You selected skill 1")
-				time.sleep(.5)
-				attackDamage = random.randint(int(player_skill1-(player_skill1*.8)), int(player_skill1)) - (m_def**(.5))/2
+				time.sleep(.4)
+				attackDamage = random.randint(int((player_skill1*.61)), int(player_skill1)) - (m_def**(.5))/2
 				if attackDamage < 0:
 					attackDamage = 0
 					print("you did 0 damage to this monster.")
-				mon_health -= attackDamage
-				print("You just attacked with %s damage" % (attackDamage))
+				mon_health -= int(attackDamage)
+				print("You just attacked with %s damage" % (int(attackDamage)))
 				time.sleep(2)
 				turn = 1
 			elif pressedkey is '2':
-				if player_power > 1:
+				if player_power > 2:
 					print("You selected skill 2")
-					time.sleep(.5)
-					attackDamage = random.randint(int(player_skill2-(player_skill2*.8)), int(player_skill2)) - (m_def**(.5))/2
+					time.sleep(.4)
+					attackDamage = random.randint(int((player_skill2*.6)), int(player_skill2)) - (m_def**(.5))/2
 					if attackDamage < 0:
 						attackDamage = 0
 						print("you did 0 damage to this monster.")
-					mon_health -= attackDamage
-					print("You just attacked with %s damage but it took some power" % (attackDamage))
+					mon_health -= int(attackDamage)
+					print("You just attacked with %s damage but it took some power" % (int(attackDamage)))
 					time.sleep(2)
 
-					player_power -= player_power*.3
-					toSub = player_skill1/(player_power*.3)
-					player_skill1 -= toSub
+					
+					player_skill1 = int(player_skill1 - ((2*player_power)*.2))
+					prob = random.randint(5,9)
+					player_skill2 = int(player_skill1 + player_skill1*(prob/10))
+					player_power -= int(player_power*.4)
 
 					turn = 1
 				else:
@@ -418,7 +423,7 @@ def fightClub2():
 					time.sleep(1)
 			elif pressedkey is '3':
 				#if condition for class
-				if player_power > 1:
+				if player_power > 5:
 					#do stuff
 					print("You have selected skill 3")
 				else:
@@ -431,11 +436,11 @@ def fightClub2():
 			if error == 1:
 				print("invalid response")
 		if turn == 1 and mon_health > 0:
-			attackDamage = m_atk - p_def**(1/2)
+			attackDamage = random.randint(int(m_atk-(m_atk*.4)),int(m_atk)) - p_def**(1/2)
 			if attackDamage < 0:
 				attackDamage = 0
-			player_health -= attackDamage
-			print("monster just attacked with %s damage" % (attackDamage))
+			player_health -= int(attackDamage)
+			print("monster just attacked with %s damage" % (int(attackDamage)))
 			time.sleep(3)
 			turn = 0
 
@@ -444,12 +449,12 @@ def fightClub2():
 	updater()
 	if player_health > 0:
 		print("player wins")
-		player_power += mon_def*2
-		p_health = player_health * (player_power*.6)
+		player_power += mon_def*.1
+		p_health += ((2*player_power)*.8)
 		player_health = int(p_health)
 		mon_health = m_health
 		time.sleep(3)
-		player_skill1 = int(player_skill1 * (player_power*.8))
+		player_skill1 = int(player_skill1 + ((2*player_power)*.6))
 		prob = random.randint(5,9)
 		player_skill2 = int(player_skill1 + player_skill1*(prob/10))
 		print("Congratulations! Your stats have been improved")
@@ -489,7 +494,43 @@ def gameCombat(monster):
 	fightClub2()
 
 
-	
+def endGame(file):
+	scene("map_world.txt")
+	global character
+	global movementAllowed
+	global specialStuff
+	lineCounter = 1
+	Gmap = ""
+	with open(file) as f:
+		for line in f:
+			Gmap += str(lineCounter)
+			Gmap += ":["
+			lineCounter = lineCounter + 1
+			for ch in line:
+				if ch == "@":
+					ch = character
+				if ch == "%":
+					ch = mon_char
+				if ch == "Ж":
+					ch = "·"
+				Gmap += "\'"
+				Gmap += ch
+				Gmap += "\',"
+			Gmap = Gmap[:-5]
+			Gmap+="]"
+			Gmap+=","
+	global room		
+	exec("global room\n"
+		"room = {"+Gmap[:-1]+"}")
+	movementAllowed = 0
+	combatAllowed = 1
+	global statement
+	statement = "You Defeated the BOSS!!!!\n\n\nGo to the Chest!!!!"
+	specialStuff['monw'] = 0
+	gamemap()
+	updater()
+	#print("yolo")
+	action()
 	
 
 def specialPos():
@@ -504,6 +545,7 @@ def specialPos():
 	global mon_def
 	global mon_attack
 	global movementAllowed
+	global combatAllowed
 	#######################################################################
 	#Tutorial
 	#Monster ahead
@@ -513,8 +555,8 @@ def specialPos():
 	if pos == specialStuff['tutMonster']:
 		mon_char = "T"
 		mon_name = "Tutorial Monster"
-		mon_health = 10
-		mon_def = 2
+		mon_health = 20
+		mon_def = 10
 		mon_attack = 1
 		gameCombat(specialStuff['tutMonster'])
 	if pos == specialStuff['tutEnd']:
@@ -526,10 +568,10 @@ def specialPos():
 	#Combat
 	if pos == specialStuff['mon1']:
 		mon_char = "1"
-		mon_name = "Lerroooyyyy"
-		mon_health = 67
-		mon_def = 4
-		mon_attack = 14
+		mon_name = "Wan"
+		mon_health = 60
+		mon_def = 20
+		mon_attack = 20
 		gameCombat(specialStuff['mon1'])
 		scene("map_world.txt")
 		movementAllowed = 0
@@ -537,7 +579,180 @@ def specialPos():
 		updater()
 		action()
 
-	
+	if pos == specialStuff['mon2']:
+		mon_char = "2"
+		mon_name = "Too"
+		mon_health = 300
+		mon_def = 25
+		mon_attack = 88
+		gameCombat(specialStuff['mon2'])
+		scene("map_world.txt")
+		movementAllowed = 0
+		gamemap()
+		updater()
+		action()	
+
+	if pos == specialStuff['mon3']:
+		mon_char = "3"
+		mon_name = "Tree"
+		mon_health = 600
+		mon_def = 30
+		mon_attack = 140
+		gameCombat(specialStuff['mon3'])
+		scene("map_world.txt")
+		movementAllowed = 0
+		gamemap()
+		updater()
+		action()
+
+	if pos == specialStuff['mon4']:
+		mon_char = "4"
+		mon_name = "Fur"
+		mon_health = 800
+		mon_def = 40
+		mon_attack = 430
+		gameCombat(specialStuff['mon4'])
+		scene("map_world.txt")
+		movementAllowed = 0
+		gamemap()
+		updater()
+		action()
+
+	if pos == specialStuff['mon5']:
+		mon_char = "5"
+		mon_name = "Fiff"
+		mon_health = 1200
+		mon_def = 55
+		mon_attack = 777
+		gameCombat(specialStuff['mon5'])
+		scene("map_world.txt")
+		movementAllowed = 0
+		gamemap()
+		updater()
+		action()
+
+	if pos == specialStuff['mon6']:
+		mon_char = "6"
+		mon_name = "Sees"
+		mon_health = 2600
+		mon_def = 70
+		mon_attack = 1000
+		gameCombat(specialStuff['mon6'])
+		scene("map_world.txt")
+		movementAllowed = 0
+		gamemap()
+		updater()
+		action()
+
+	if pos == specialStuff['mon7']:
+		mon_char = "7"
+		mon_name = "Steven"
+		mon_health = 4000
+		mon_def = 80
+		mon_attack = 1800
+		gameCombat(specialStuff['mon7'])
+		scene("map_world.txt")
+		movementAllowed = 0
+		gamemap()
+		updater()
+		action()
+
+
+	if pos == specialStuff['mon8']:
+		mon_char = "8"
+		mon_name = "Kate"
+		mon_health = 10000
+		mon_def = 100
+		mon_attack = 2300
+		gameCombat(specialStuff['mon8'])
+		scene("map_world.txt")
+		movementAllowed = 0
+		gamemap()
+		updater()
+		action()
+
+	if pos == specialStuff['mon9']:
+		mon_char = "9"
+		mon_name = "Nein"
+		mon_health = 15000
+		mon_def = 80
+		mon_attack = 3000
+		gameCombat(specialStuff['mon9'])
+		scene("map_world.txt")
+		movementAllowed = 0
+		gamemap()
+		updater()
+		action()
+
+	if pos == specialStuff['monw']:
+		mon_char = "w"
+		mon_name = "Wise Dragon"
+		mon_health = 2000000
+		mon_def = 200
+		mon_attack = 7000
+		gameCombat(specialStuff['monw'])
+		scene("map_world.txt")
+		movementAllowed = 0
+		gamemap()
+		updater()
+		endGame("map_world.txt")	
+
+	#######################################################################
+	#End Game
+	if pos == specialStuff['prize']:
+		scene("win.txt")
+		zodNum = random.randint(0,12)
+		movementAllowed = 1
+		combatAllowed = 1
+
+		sign = ""
+
+		if zodNum == 1:
+			sign = "Aries"
+		if zodNum == 2:
+			sign = "Taurus"
+		if zodNum == 3:
+			sign = "Gemini"
+		if zodNum == 4:
+			sign = "Cancer"
+		if zodNum == 5:
+			sign = "Leo"
+		if zodNum == 6:
+			sign = "Virgo"
+		if zodNum == 7:
+			sign = "Libra"
+		if zodNum == 8:
+			sign = "Scorpio"
+		if zodNum == 9:
+			sign = "Sagittarius"
+		if zodNum == 10:
+			sign = "Capricorn"
+		if zodNum == 11:
+			sign = "Aquarious"
+		if zodNum == 12:
+			sign = "Pisces"
+			
+
+		'''
+		Aries
+		Taurus
+		Gemini
+		Cancer
+		Leo
+		Virgo
+		Libra
+		Scorpio
+		Sagittarius
+		Capricorn
+		Aquarious
+		Pisces
+		'''
+
+		statement = ("Your Zodiac sign is: %s \n\nHoroscope loading........" % (sign))
+		gamemap()
+		updater()
+		time.sleep(5)
+		webbrowser.open_new_tab('https://www.astrology.com/horoscope/daily/%s.html' % (sign))
 
 
 #creates a new player and determines the stats based on the player class
@@ -558,11 +773,11 @@ def initPlayer(pname,pclass):
 
 	#ninja
 	if player_class==1:
-		player_def = 4
-		player_skill1 =  10
+		player_def = 99999
+		player_skill1 =  99999999
 		prob = random.randint(5,9)
 		player_skill2 = int(player_skill1 + player_skill1*(prob/10))
-		player_health = 70
+		player_health = 99999999
 		'''
 		player_skill1 = 
 		player_skill2 =
@@ -572,7 +787,7 @@ def initPlayer(pname,pclass):
 	#tank
 	elif player_class==2:
 		player_def = 15
-		player_skill1 = 4
+		player_skill1 = 20
 		prob = random.randint(5,9)
 		player_skill2 = int(player_skill1 + player_skill1*(prob/10))
 		player_health = 100
@@ -586,7 +801,7 @@ def initPlayer(pname,pclass):
 	#knight
 	elif player_class==3:
 		player_def = 7
-		player_skill1 = 7
+		player_skill1 = 30
 		prob = random.randint(5,9)
 		player_skill2 = int(player_skill1 + player_skill1*(prob/10))
 		player_health = 85
@@ -599,7 +814,7 @@ def initPlayer(pname,pclass):
 	#healer
 	elif player_class==4:
 		player_def = 4
-		player_skill1 = 6
+		player_skill1 = 25
 		prob = random.randint(5,9)
 		player_skill2 = int(player_skill1 + player_skill1*(prob/10))
 		player_health = 65
@@ -760,7 +975,7 @@ def game_tutorial_aftCombat(file):
 					ch = character
 				if ch == "%":
 					ch = mon_char
-				if ch == "K":
+				if ch == "Ж":
 					ch = "·"
 				Gmap += "\'"
 				Gmap += ch
@@ -783,6 +998,8 @@ def game_tutorial_aftCombat(file):
 	action()
 
 game_tutorial_aftCombat("map_tutorial.txt")
+
+
 
 
 
